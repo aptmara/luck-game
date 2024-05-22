@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>カードゲーム</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f0f0f0;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+        }
+
+        h1 {
+            font-size: 2em;
+            margin-bottom: 20px;
+            color: #444;
+        }
+
+        label {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        select, button, input {
+            padding: 10px;
+            margin: 10px 5px;
+            font-size: 1em;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #00ff7b;
+        }
+
+        #controls, #players {
+            width: 48%;
+        }
+
+        #controls {
+            display: flex;
+            flex-direction: column;
+        }
+
+        #players {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .player {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            font-size: 1.2em;
+        }
+
+        .player span {
+            font-weight: bold;
+            margin-left: 5px;
+        }
+
+        .player div {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+        }
+
+        .suit-buttons, .value-buttons {
+            margin: 10px 0;
+        }
+
+        .suit-buttons button, .value-buttons button {
+            margin-right: 10px;
+        }
+
+        .current-turn {
+            font-weight: bold;
+            color: red;
+        }
+
+        .eliminated {
+            text-decoration: line-through;
+            color: gray;
+        }
+
+        .selected {
+            border: 2px solid #ff0000;
+            background-color: #00ff7b;
+        }
+
+        .suit-button {
+            width: 100px;
+            height: 100px;
+            background-size: cover;
+            background-position: center;
+        }
+
+        .suit-button.club {
+            background-image: url('pic/club.png');
+        }
+
+        .suit-button.diamond {
+            background-image: url('pic/diamond.png');
+        }
+
+        .suit-button.spade {
+            background-image: url('pic/spade.png');
+        }
+
+        .suit-button.heart {
+            background-image: url('pic/heart.png');
+        }
+
+        .suit-button.joker {
+            background-image: url('pic/joker.png');
+        }
+
+        .number-button {
+            width: 80px;
+            height: 80px;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <h1>カードゲーム</h1>
+        <div id="setupControls">
+            <label for="playerCount">プレイヤー数を選択する (2-4人): </label>
+            <select id="playerCount">
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+            </select>
+            <label for="initialHp">初期HP: </label>
+            <input type="number" id="initialHp" value="50" min="1">
+            <label for="hpLimit">HP上限あり: </label>
+            <input type="checkbox" id="hpLimit" checked>
+        </div>
+        <button id="startButton" onclick="setupGame()">ゲーム開始</button>
+        <button id="resetButton" style="display:none;" onclick="resetGame()">リセット</button>
+
+        <h2>トランプの役を入力する</h2>
+
+        <div class="value-buttons">
+            <button class="number-button" onclick="selectValue(1)" aria-label="Ace">A</button>
+            <button class="number-button" onclick="selectValue(2)" aria-label="2">2</button>
+            <button class="number-button" onclick="selectValue(3)" aria-label="3">3</button>
+            <button class="number-button" onclick="selectValue(4)" aria-label="4">4</button>
+            <button class="number-button" onclick="selectValue(5)" aria-label="5">5</button>
+            <button class="number-button" onclick="selectValue(6)" aria-label="6">6</button>
+            <button class="number-button" onclick="selectValue(7)" aria-label="7">7</button>
+            <button class="number-button" onclick="selectValue(8)" aria-label="8">8</button>
+            <button class="number-button" onclick="selectValue(9)" aria-label="9">9</button>
+            <button class="number-button" onclick="selectValue(10)" aria-label="10">10</button>
+            <button class="number-button" onclick="selectValue(11)" aria-label="Jack">J</button>
+            <button class="number-button" onclick="selectValue(12)" aria-label="Queen">Q</button>
+            <button class="number-button" onclick="selectValue(13)" aria-label="King">K</button>
+        </div>
+
+        <div class="suit-buttons">
+            <button class="suit-button club" onclick="selectSuit('club')" aria-label="Clubs"></button>
+            <button class="suit-button diamond" onclick="selectSuit('diamond')" aria-label="Diamonds"></button>
+            <button class="suit-button spade" onclick="selectSuit('spade')" aria-label="Spades"></button>
+            <button class="suit-button heart" onclick="selectSuit('heart')" aria-label="Hearts"></button>
+            <button class="suit-button joker" onclick="selectSuit('joker')" aria-label="Joker"></button>
+        </div>
+
+        <button onclick="playCard()">カードをプレイ</button>
+    </div>
+    <div id="players"></div>
+
+    <script>
+        let players = [];
+        let selectedSuit = '';
+        let selectedValue = 0;
+        let currentPlayerIndex = 0;
+        let hpLimitEnabled = true;
+        let spadeAceActive = false;
+        let heartAceActive = false;
+
+        function setupGame() {
+            const playerCount = parseInt(document.getElementById('playerCount').value);
+            const initialHp = parseInt(document.getElementById('initialHp').value);
+            if (initialHp <= 0) {
+                alert('初期HPは正の数でなければなりません。');
+                return;
+            }
+            hpLimitEnabled = document.getElementById('hpLimit').checked;
+
+            document.getElementById('setupControls').style.display = 'none';
+            document.getElementById('startButton').style.display = 'none';
+            document.getElementById('resetButton').style.display = 'inline-block';
+
+            const playersDiv = document.getElementById('players');
+
+            playersDiv.innerHTML = '';
+            players = [];
+            for (let i = 0; i < playerCount; i++) {
+                players.push({ hp: initialHp, clubsBonus: 0, diamondsBonus: 0 });
+                playersDiv.innerHTML += `
+                    <div class="player" id="player${i}">
+                        <div>PL${i + 1}: <span id="hp${i}">${initialHp}</span> HP</div>
+                        <div>クラブボーナス: <span id="clubs${i}">0</span></div>
+                        <div>ダイヤボーナス: <span id="diamonds${i}">0</span></div>
+                    </div>
+                `;
+            }
+
+            currentPlayerIndex = 0;
+            updateCurrentPlayerDisplay();
+        }
+
+        function resetGame() {
+            document.getElementById('setupControls').style.display = 'block';
+            document.getElementById('startButton').style.display = 'inline-block';
+            document.getElementById('resetButton').style.display = 'none';
+            document.getElementById('players').innerHTML = '';
+        }
+
+        function updateCurrentPlayerDisplay() {
+            for (let i = 0; i < players.length; i++) {
+                const playerDiv = document.getElementById(`player${i}`);
+                if (i === currentPlayerIndex) {
+                    playerDiv.classList.add('current-turn');
+                } else {
+                    playerDiv.classList.remove('current-turn');
+                }
+            }
+        }
+
+        function selectSuit(suit) {
+            const suitButtons = document.querySelectorAll('.suit-button');
+            suitButtons.forEach(button => {
+                button.classList.remove('selected');
+            });
+
+            selectedSuit = suit;
+            document.querySelector(`.suit-button.${suit}`).classList.add('selected');
+        }
+
+        function selectValue(value) {
+            const valueButtons = document.querySelectorAll('.value-buttons button');
+            valueButtons.forEach(button => {
+                button.classList.remove('selected');
+            });
+
+            selectedValue = value;
+            valueButtons[value - 1].classList.add('selected');
+        }
+
+        function playCard() {
+            if (!selectedSuit || !selectedValue) {
+                alert('スートと数字を選択してください');
+                return;
+            }
+
+            const maxHp = parseInt(document.getElementById('initialHp').value);
+
+            if (selectedSuit === 'spade' && selectedValue === 1) {
+                handleAceCard('spade');
+            } else if (selectedSuit === 'heart' && selectedValue === 1) {
+                handleAceCard('heart');
+            } else {
+                handleRegularCard();
+            }
+
+            moveToNextPlayer();
+        }
+
+        function handleAceCard(suit) {
+            if (suit === 'spade') {
+                spadeAceActive = true;
+                players[currentPlayerIndex].clubsBonus += selectedValue;
+                document.getElementById(`clubs${currentPlayerIndex}`).innerText = players[currentPlayerIndex].clubsBonus;
+            } else if (suit === 'heart') {
+                heartAceActive = true;
+                players[currentPlayerIndex].diamondsBonus += selectedValue;
+                document.getElementById(`diamonds${currentPlayerIndex}`).innerText = players[currentPlayerIndex].diamondsBonus;
+            }
+        }
+
+        function handleRegularCard() {
+            const maxHp = parseInt(document.getElementById('initialHp').value);
+
+            if (selectedSuit === 'spade') {
+                let totalDamage = selectedValue + players[currentPlayerIndex].clubsBonus;
+                for (let i = 0; i < players.length; i++) {
+                    if (i !== currentPlayerIndex) {
+                        players[i].hp -= totalDamage;
+                        document.getElementById(`hp${i}`).innerText = players[i].hp;
+                        if (players[i].hp <= 0) {
+                            document.getElementById(`player${i}`).classList.add('eliminated');
+                        }
+                    }
+                }
+                players[currentPlayerIndex].clubsBonus = 0;
+                document.getElementById(`clubs${currentPlayerIndex}`).innerText = players[currentPlayerIndex].clubsBonus;
+            } else if (selectedSuit === 'heart') {
+                players[currentPlayerIndex].hp += selectedValue + players[currentPlayerIndex].diamondsBonus;
+                if (hpLimitEnabled && players[currentPlayerIndex].hp > maxHp) {
+                    players[currentPlayerIndex].hp = maxHp;
+                }
+                document.getElementById(`hp${currentPlayerIndex}`).innerText = players[currentPlayerIndex].hp;
+                players[currentPlayerIndex].diamondsBonus = 0;
+                document.getElementById(`diamonds${currentPlayerIndex}`).innerText = players[currentPlayerIndex].diamondsBonus;
+            } else if (selectedSuit === 'club') {
+                players[currentPlayerIndex].clubsBonus += selectedValue;
+                document.getElementById(`clubs${currentPlayerIndex}`).innerText = players[currentPlayerIndex].clubsBonus;
+            } else if (selectedSuit === 'diamond') {
+                players[currentPlayerIndex].diamondsBonus += selectedValue;
+                document.getElementById(`diamonds${currentPlayerIndex}`).innerText = players[currentPlayerIndex].diamondsBonus;
+            } else if (selectedSuit === 'joker') {
+                swapPlayerHp();
+            }
+        }
+
+        function swapPlayerHp() {
+            const playerCount = players.length;
+            if (playerCount === 2) {
+                let temp = players[0].hp;
+                players[0].hp = players[1].hp;
+                players[1].hp = temp;
+            } else if (playerCount === 3) {
+                let temp = players[0].hp;
+                players[0].hp = players[1].hp;
+                players[1].hp = players[2].hp;
+                players[2].hp = temp;
+            } else if (playerCount === 4) {
+                let temp = players[0].hp;
+                players[0].hp = players[1].hp;
+                players[1].hp = players[2].hp;
+                players[2].hp = players[3].hp;
+                players[3].hp = temp;
+            }
+            for (let i = 0; i < players.length; i++) {
+                document.getElementById(`hp${i}`).innerText = players[i].hp;
+                if (players[i].hp <= 0) {
+                    document.getElementById(`player${i}`).classList.add('eliminated');
+                } else {
+                    document.getElementById(`player${i}`).classList.remove('eliminated');
+                }
+            }
+        }
+
+        function moveToNextPlayer() {
+            let nextPlayerFound = false;
+            for (let i = 0; i < players.length; i++) {
+                currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
+                if (players[currentPlayerIndex].hp > 0) {
+                    nextPlayerFound = true;
+                    break;
+                }
+            }
+
+            updateCurrentPlayerDisplay();
+
+            if (!nextPlayerFound) {
+                alert('全員が倒れました。ゲーム終了です。');
+            }
+        }
+    </script>
+</body>
+</html>
