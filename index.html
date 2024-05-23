@@ -205,6 +205,8 @@
             document.getElementById('setupControls').style.display = 'none';
             document.getElementById('startButton').style.display = 'none';
             document.getElementById('resetButton').style.display = 'inline-block';
+            heartAcePlayed = false;
+            spadeAcePlayed = false;
 
             const playersDiv = document.getElementById('players');
 
@@ -230,6 +232,8 @@
             document.getElementById('startButton').style.display = 'inline-block';
             document.getElementById('resetButton').style.display = 'none';
             document.getElementById('players').innerHTML = '';
+            heartAcePlayed = false;
+            spadeAcePlayed = false;
         }
 
         function updateCurrentPlayerDisplay() {
@@ -273,9 +277,9 @@
                 handleAceCard('spade');
             } else if (selectedSuit === 'heart' && selectedValue === 1 && spadeAcePlayed === false) {
                 handleAceCard('heart');
-            } else if (selectedSuit === 'club' && selectedValue === 1) {
+            } else if (selectedSuit === 'club' && selectedValue === 1 && heartAcePlayed === false) {
                 handleAceCard('club');
-            } else if (selectedSuit === 'diamond' && selectedValue === 1) {
+            } else if (selectedSuit === 'diamond' && selectedValue === 1 && spadeAcePlayed === false) {
                 handleAceCard('diamond');
             } else {
                 handleRegularCard();
