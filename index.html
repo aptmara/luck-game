@@ -269,9 +269,9 @@
                 return;
             }
 
-            if (selectedSuit === 'spade' && selectedValue === 1) {
+            if (selectedSuit === 'spade' && selectedValue === 1 && heartAcePlayed === false) {
                 handleAceCard('spade');
-            } else if (selectedSuit === 'heart' && selectedValue === 1) {
+            } else if (selectedSuit === 'heart' && selectedValue === 1 && spadeAcePlayed === false) {
                 handleAceCard('heart');
             } else if (selectedSuit === 'club' && selectedValue === 1) {
                 handleAceCard('club');
