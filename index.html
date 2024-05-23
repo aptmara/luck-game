@@ -41,9 +41,9 @@
             cursor: pointer;
         }
 
-        button:hover {
-            background-color: #00ff7b;
-        }
+            button:hover {
+                background-color: #00ff7b;
+            }
 
         #controls, #players {
             width: 48%;
@@ -70,24 +70,24 @@
             font-size: 1.2em;
         }
 
-        .player span {
-            font-weight: bold;
-            margin-left: 5px;
-        }
+            .player span {
+                font-weight: bold;
+                margin-left: 5px;
+            }
 
-        .player div {
-            display: flex;
-            justify-content: space-between;
-            width: 100%;
-        }
+            .player div {
+                display: flex;
+                justify-content: space-between;
+                width: 100%;
+            }
 
         .suit-buttons, .value-buttons {
             margin: 10px 0;
         }
 
-        .suit-buttons button, .value-buttons button {
-            margin-right: 10px;
-        }
+            .suit-buttons button, .value-buttons button {
+                margin-right: 10px;
+            }
 
         .current-turn {
             font-weight: bold;
@@ -111,25 +111,25 @@
             background-position: center;
         }
 
-        .suit-button.club {
-            background-image: url('pic/club.png');
-        }
+            .suit-button.club {
+                background-image: url('pic/club.png');
+            }
 
-        .suit-button.diamond {
-            background-image: url('pic/diamond.png');
-        }
+            .suit-button.diamond {
+                background-image: url('pic/diamond.png');
+            }
 
-        .suit-button.spade {
-            background-image: url('pic/spade.png');
-        }
+            .suit-button.spade {
+                background-image: url('pic/spade.png');
+            }
 
-        .suit-button.heart {
-            background-image: url('pic/heart.png');
-        }
+            .suit-button.heart {
+                background-image: url('pic/heart.png');
+            }
 
-        .suit-button.joker {
-            background-image: url('pic/joker.png');
-        }
+            .suit-button.joker {
+                background-image: url('pic/joker.png');
+            }
 
         .number-button {
             width: 80px;
@@ -174,10 +174,10 @@
         </div>
 
         <div class="suit-buttons">
-            <button class="suit-button club" onclick="selectSuit('club')" aria-label="Clubs"></button>
-            <button class="suit-button diamond" onclick="selectSuit('diamond')" aria-label="Diamonds"></button>
             <button class="suit-button spade" onclick="selectSuit('spade')" aria-label="Spades"></button>
             <button class="suit-button heart" onclick="selectSuit('heart')" aria-label="Hearts"></button>
+            <button class="suit-button club" onclick="selectSuit('club')" aria-label="Clubs"></button>
+            <button class="suit-button diamond" onclick="selectSuit('diamond')" aria-label="Diamonds"></button>
             <button class="suit-button joker" onclick="selectSuit('joker')" aria-label="Joker"></button>
         </div>
 
@@ -191,8 +191,7 @@
         let selectedValue = 0;
         let currentPlayerIndex = 0;
         let hpLimitEnabled = true;
-        let spadeAceActive = false;
-        let heartAceActive = false;
+        let heartAcePlayed = false, spadeAcePlayed = false;
 
         function setupGame() {
             const playerCount = parseInt(document.getElementById('playerCount').value);
@@ -214,12 +213,12 @@
             for (let i = 0; i < playerCount; i++) {
                 players.push({ hp: initialHp, clubsBonus: 0, diamondsBonus: 0 });
                 playersDiv.innerHTML += `
-                    <div class="player" id="player${i}">
-                        <div>PL${i + 1}: <span id="hp${i}">${initialHp}</span> HP</div>
-                        <div>クラブボーナス: <span id="clubs${i}">0</span></div>
-                        <div>ダイヤボーナス: <span id="diamonds${i}">0</span></div>
-                    </div>
-                `;
+                        <div class="player" id="player${i}">
+                            <div>PL${i + 1}: <span id="hp${i}">${initialHp}</span> HP</div>
+                            <div>クラブボーナス: <span id="clubs${i}">0</span></div>
+                            <div>ダイヤボーナス: <span id="diamonds${i}">0</span></div>
+                        </div>
+                    `;
             }
 
             currentPlayerIndex = 0;
@@ -270,35 +269,74 @@
                 return;
             }
 
-            const maxHp = parseInt(document.getElementById('initialHp').value);
-
             if (selectedSuit === 'spade' && selectedValue === 1) {
                 handleAceCard('spade');
             } else if (selectedSuit === 'heart' && selectedValue === 1) {
                 handleAceCard('heart');
+            } else if (selectedSuit === 'club' && selectedValue === 1) {
+                handleAceCard('club');
+            } else if (selectedSuit === 'diamond' && selectedValue === 1) {
+                handleAceCard('diamond');
             } else {
                 handleRegularCard();
             }
-
+            if (heartAcePlayed === false && spadeAcePlayed === false)
             moveToNextPlayer();
         }
 
         function handleAceCard(suit) {
             if (suit === 'spade') {
-                spadeAceActive = true;
-                players[currentPlayerIndex].clubsBonus += selectedValue;
-                document.getElementById(`clubs${currentPlayerIndex}`).innerText = players[currentPlayerIndex].clubsBonus;
+                spadeAcePlayed = true;
+                for (let i = 0; i < players.length; i++) {
+                    if (i !== currentPlayerIndex && players[i].hp > 0) {
+                        players[i].hp -= 1;
+                        if (players[i].hp <= 0) {
+                            document.getElementById(`player${i}`).classList.add('eliminated');
+                        }
+                        document.getElementById(`hp${i}`).innerText = players[i].hp;
+                    }
+                }
             } else if (suit === 'heart') {
-                heartAceActive = true;
-                players[currentPlayerIndex].diamondsBonus += selectedValue;
-                document.getElementById(`diamonds${currentPlayerIndex}`).innerText = players[currentPlayerIndex].diamondsBonus;
+                heartAcePlayed = true;
+                if (players[currentPlayerIndex].hp > 0) {
+                    players[currentPlayerIndex].hp += 1;
+                    document.getElementById(`hp${currentPlayerIndex}`).innerText = players[currentPlayerIndex].hp;
+                }
+            } else if (suit === 'club') {
+                let totalClubsBonus = 0;
+                for (let i = 0; i < players.length; i++) {
+                    if (players[i].hp > 0) {
+                        totalClubsBonus += players[i].clubsBonus;
+                        players[i].clubsBonus = 0;
+                        document.getElementById(`clubs${i}`).innerText = players[i].clubsBonus;
+                    }
+                }
+                if (players[currentPlayerIndex].hp > 0) {
+                    players[currentPlayerIndex].clubsBonus = totalClubsBonus;
+                    document.getElementById(`clubs${currentPlayerIndex}`).innerText = players[currentPlayerIndex].clubsBonus;
+                }
+            } else if (suit === 'diamond') {
+                let totaldiamondsBonus = 0;
+                for (let i = 0; i < players.length; i++) {
+                    if (players[i].hp > 0) {
+                        totaldiamondsBonus += players[i].diamondsBonus;
+                        players[i].diamondsBonus = 0;
+                        document.getElementById(`diamonds${i}`).innerText = players[i].diamondsBonus;
+                    }
+                }
+                if (players[currentPlayerIndex].hp > 0) {
+                    players[currentPlayerIndex].diamondsBonus = totaldiamondsBonus;
+                    document.getElementById(`diamonds${currentPlayerIndex}`).innerText = players[currentPlayerIndex].diamondsBonus;
+                }
             }
         }
+
 
         function handleRegularCard() {
             const maxHp = parseInt(document.getElementById('initialHp').value);
 
-            if (selectedSuit === 'spade') {
+            if (selectedSuit === 'spade' && heartAcePlayed === false) {
+                spadeAcePlayed = false;
                 let totalDamage = selectedValue + players[currentPlayerIndex].clubsBonus;
                 for (let i = 0; i < players.length; i++) {
                     if (i !== currentPlayerIndex) {
@@ -311,7 +349,8 @@
                 }
                 players[currentPlayerIndex].clubsBonus = 0;
                 document.getElementById(`clubs${currentPlayerIndex}`).innerText = players[currentPlayerIndex].clubsBonus;
-            } else if (selectedSuit === 'heart') {
+            } else if (selectedSuit === 'heart' && spadeAcePlayed === false) {
+                heartAcePlayed = false;
                 players[currentPlayerIndex].hp += selectedValue + players[currentPlayerIndex].diamondsBonus;
                 if (hpLimitEnabled && players[currentPlayerIndex].hp > maxHp) {
                     players[currentPlayerIndex].hp = maxHp;
@@ -319,35 +358,29 @@
                 document.getElementById(`hp${currentPlayerIndex}`).innerText = players[currentPlayerIndex].hp;
                 players[currentPlayerIndex].diamondsBonus = 0;
                 document.getElementById(`diamonds${currentPlayerIndex}`).innerText = players[currentPlayerIndex].diamondsBonus;
-            } else if (selectedSuit === 'club') {
+
+            } else if (selectedSuit === 'club' && heartAcePlayed === false) {
+
                 players[currentPlayerIndex].clubsBonus += selectedValue;
                 document.getElementById(`clubs${currentPlayerIndex}`).innerText = players[currentPlayerIndex].clubsBonus;
-            } else if (selectedSuit === 'diamond') {
+
+            } else if (selectedSuit === 'diamond' && spadeAcePlayed === false) {
                 players[currentPlayerIndex].diamondsBonus += selectedValue;
+
                 document.getElementById(`diamonds${currentPlayerIndex}`).innerText = players[currentPlayerIndex].diamondsBonus;
-            } else if (selectedSuit === 'joker') {
+            } else if (selectedSuit === 'joker' && spadeAcePlayed === false && heartAcePlayed === false) {
                 swapPlayerHp();
             }
         }
 
         function swapPlayerHp() {
             const playerCount = players.length;
-            if (playerCount === 2) {
-                let temp = players[0].hp;
-                players[0].hp = players[1].hp;
-                players[1].hp = temp;
-            } else if (playerCount === 3) {
-                let temp = players[0].hp;
-                players[0].hp = players[1].hp;
-                players[1].hp = players[2].hp;
-                players[2].hp = temp;
-            } else if (playerCount === 4) {
-                let temp = players[0].hp;
-                players[0].hp = players[1].hp;
-                players[1].hp = players[2].hp;
-                players[2].hp = players[3].hp;
-                players[3].hp = temp;
+            let temp = players[0].hp;
+            for (let i = 0; i < playerCount - 1; i++) {
+                players[i].hp = players[i + 1].hp;
             }
+            players[playerCount - 1].hp = temp;
+
             for (let i = 0; i < players.length; i++) {
                 document.getElementById(`hp${i}`).innerText = players[i].hp;
                 if (players[i].hp <= 0) {
